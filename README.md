@@ -1,4 +1,4 @@
-# Media Browser - Emby/Jellyfin integration
+# Jellyfin integration
 
 ![alt text](assets/mb_player.png)
 
@@ -9,7 +9,7 @@
 [![hacs][hacsbadge]][hacs]
 
 
-_Home Assistant integration for [Emby][emby] and [Jellyfin][jellyfin]._
+_Home Assistant integration for [Jellyfin][jellyfin]._
 
 
 
@@ -48,7 +48,7 @@ After selecting one of the available servers or if the integration discovers onl
 |`Password`|yes|-|Password used to authenticate|
 |`Name`|no|Myflix|Custom name of your server. This is used especialyy for entity naming. Leave blank to use the *default server name*|
 
-Configuration is done at these step, a media player is created for each of the server sessions and three default library sensors are also created for your *Movies*, *Series* and *Songs*. 
+Configuration is done at these step, a media player is created for each of the server sessions and three default library sensors are also created for your *Movies*, *Series* and *Songs*.
 
 ## Options
 
@@ -175,7 +175,7 @@ Works with any player cappable to decode mp3 audio and h264 video.
 
 ## Services
 ### Service mediabrowser.send_message
-Send a message to a session. 
+Send a message to a session.
 
 |Service data attribute|Optional|Description|
 |-|-|-|
@@ -197,7 +197,7 @@ data:
 ```
 
 ### Service mediabrowser.send_command
-Send a command to a session. 
+Send a command to a session.
 
 |Service data attribute|Optional|Description|
 |-|-|-|

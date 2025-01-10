@@ -1,5 +1,5 @@
 {
-    "name": "MediaBrowser (Emby/Jellyfin) integration",
+    "name": "Jellyfin Mediabrowser Integration",
     "filename": "mediabrowser.zip",
     "hide_default_branch": true,
     "homeassistant": "2023.3.0",
