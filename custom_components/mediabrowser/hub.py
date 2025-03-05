@@ -11,7 +11,7 @@ from typing import Any, Awaitable
 
 import aiohttp
 import async_timeout
-from homeassistant.const import CONF_USERNAME, CONF_NAME, CONF_PASSWORD, CONF_URL
+from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_URL
 from homeassistant.util import uuid
 
 from .helpers import (
@@ -23,6 +23,7 @@ from .helpers import (
 
 from .const import (
     APP_PLAYERS,
+    CONF_API_KEY,
     CONF_CACHE_SERVER_API_KEY,
     CONF_CACHE_SERVER_ID,
     CONF_CACHE_SERVER_NAME,
@@ -30,7 +31,6 @@ from .const import (
     CONF_CACHE_SERVER_USER_ID,
     CONF_CACHE_SERVER_VERSION,
     CONF_CLIENT_NAME,
-    CONF_API_KEY,
     CONF_DEVICE_ID,
     CONF_DEVICE_NAME,
     CONF_DEVICE_VERSION,
@@ -74,19 +74,16 @@ from .const import (
     WebsocketMessage,
 )
 
-
 _LOGGER = logging.getLogger(__package__)
 
-
 class MediaBrowserHub:
-    """Represents a Emby/Jellyfin connection."""
+    """Represents an Emby/Jellyfin connection."""
 
     def __init__(self, options: dict[str, Any]) -> None:
         parsed_url = urllib.parse.urlparse(options[CONF_URL])
         self._host: str = parsed_url.hostname
-        self.username: str = options[CONF_USERNAME]
-        self.password: str = options.get(CONF_PASSWORD)
-        self.api_key: str | None = options.get(CONF_API_KEY) or options.get(CONF_CACHE_SERVER_API_KEY)
+        self.username: str | None = options.get(CONF_USERNAME)
+        self.password: str | None = options.get(CONF_PASSWORD)
         self._use_ssl: bool = parsed_url.scheme == "https" or (
             parsed_url.scheme == "" and parsed_url.port == DEFAULT_SSL_PORT
         )
@@ -136,7 +133,7 @@ class MediaBrowserHub:
             DEFAULT_EVENTS_OTHER,
         )
 
-        self.api_key: str | None = options.get(CONF_CACHE_SERVER_API_KEY)
+        self.api_key: str | None = options.get(CONF_API_KEY) or options.get(CONF_CACHE_SERVER_API_KEY)
         self.user_id: str | None = options.get(CONF_CACHE_SERVER_USER_ID)
         self.server_id: str | None = options.get(CONF_CACHE_SERVER_ID)
         self.server_name: str | None = options.get(CONF_CACHE_SERVER_NAME)
@@ -195,47 +192,21 @@ class MediaBrowserHub:
 
         self._last_activity_log_entry: str | None = None
 
-    @property
-    def server_type(self) -> ServerType:
-        """Returns the server type"""
-        if self.server_ping is not None:
-            return (
-                ServerType.EMBY
-                if self.server_ping.lower().startswith(ServerType.EMBY)
-                else (
-                    ServerType.JELLYFIN
-                    if self.server_ping.strip('"')
-                    .lower()
-                    .startswith(ServerType.JELLYFIN)
-                    else ServerType.UNKNOWN
-                )
-            )
-        return ServerType.UNKNOWN
-
-    @property
-    def name(self) -> str | None:
-        """Returns the server name."""
-        return self._custom_name or self.server_name
-
     def on_availability_changed(
         self, callback: Callable[[bool], Awaitable[None]]
     ) -> Callable[[], None]:
-        """Registers a callback for sessions update."""
-
+        """Registers a callback for availability updates."""
         def remove_availability_listener() -> None:
             self._availability_listeners.discard(callback)
-
         self._availability_listeners.add(callback)
         return remove_availability_listener
 
     def on_sessions_changed(
         self, callback: Callable[[list[dict[str, Any]]], Awaitable[None]]
     ) -> Callable[[], None]:
-        """Registers a callback for sessions update."""
-
+        """Registers a callback for session updates."""
         def remove_sessions_listener() -> None:
             self._sessions_listeners.discard(callback)
-
         self._sessions_listeners.add(callback)
         return remove_sessions_listener
 
@@ -245,11 +216,9 @@ class MediaBrowserHub:
             [dict[str, Any] | None, dict[str, Any] | None], Awaitable[None]
         ],
     ) -> Callable[[], None]:
-        """Registers a callback for sessions update."""
-
+        """Registers a callback for individual session changes."""
         def remove_session_changed_listener() -> None:
             self._session_changed_listeners.discard(callback)
-
         self._session_changed_listeners.add(callback)
         return remove_session_changed_listener
 
@@ -260,57 +229,50 @@ class MediaBrowserHub:
         item_type: str,
         callback: Callable[[dict[str, Any]], Awaitable[None]],
     ):
-        """Registers a callback for library change"""
+        """Registers a callback for library changes."""
         library_listeners = self._library_listeners.setdefault(
             (library_id, user_id, item_type), set()
         )
-
         self._library_infos.setdefault((library_id, user_id, item_type), {})
-
         def remove_library_listener() -> None:
             library_listeners.discard(callback)
-            if not any(library_listeners):
+            if not library_listeners:
                 self._library_infos.pop((library_id, user_id, item_type), None)
-
         library_listeners.add(callback)
         return remove_library_listener
 
     def on_websocket_message(
         self, callback: Callable[[str, dict[str, Any] | None], Awaitable[None]]
     ) -> Callable[[], None]:
-        """Registers a callback for websocket messages."""
-
+        """Registers a callback for WebSocket messages."""
         def remove_websocket_listener() -> None:
             self._websocket_listeners.discard(callback)
-
         self._websocket_listeners.add(callback)
         return remove_websocket_listener
 
     async def async_command(
         self, session_id: str, command: str, data=None, params=None
     ):
-        """Executes the specified command."""
+        """Executes a command on a session."""
         await self._async_needs_authentication()
         url = f"{ApiUrl.SESSIONS}/{session_id}{ApiUrl.COMMAND}"
         data = {"Name": command, "Arguments": data}
         return await self._async_rest_post_get_text(url, data=data, params=params)
 
     async def async_get_artists(self, params: dict[str, Any]) -> dict[str, Any]:
-        """Gets a list of items."""
+        """Gets a list of artists."""
         await self._async_needs_authentication()
         return await self._async_rest_get_json(ApiUrl.ARTISTS, params)
 
     async def async_get_genres(self, params: dict[str, Any]) -> dict[str, Any]:
-        """Gets a list of items."""
+        """Gets a list of genres."""
         await self._async_needs_authentication()
         return await self._async_rest_get_json(ApiUrl.GENRES, params)
 
     async def async_get_items(self, params: dict[str, Any]) -> dict[str, Any]:
         """Gets a list of items."""
-        # jellyfin crashes sometimes if using /Items, providing 500 Internal server error
-        return await self.async_get_user_items(self.user_id, params)  # type: ignore
-        # await self._async_needs_authentication()
-        # return await self._async_rest_get_json(ApiUrl.ITEMS, params)
+        await self._async_needs_authentication()
+        return await self._async_rest_get_json(ApiUrl.ITEMS, params)
 
     async def async_get_libraries(self) -> list[dict[str, Any]]:
         """Gets the current server libraries."""
@@ -324,7 +286,7 @@ class MediaBrowserHub:
         return libraries + channels
 
     async def async_get_persons(self, params: dict[str, Any]) -> dict[str, Any]:
-        """Gets a list of items."""
+        """Gets a list of persons."""
         await self._async_needs_authentication()
         return await self._async_rest_get_json(ApiUrl.PERSONS, params)
 
@@ -343,7 +305,7 @@ class MediaBrowserHub:
             return list(self._sessions.values())
 
     async def async_get_playback_info(self, item_id: str) -> dict[str, Any]:
-        """Gets Playback information for the specified item"""
+        """Gets playback information for the specified item"""
         data = {
             "UserId": self.user_id,
             "DeviceProfile": DEVICE_PROFILE_BASIC,
@@ -355,7 +317,7 @@ class MediaBrowserHub:
         )
 
     async def async_get_prefixes(self, params: dict[str, Any]) -> list[dict[str, str]]:
-        """Gets a list of items."""
+        """Gets a list of prefixes."""
         await self._async_needs_authentication()
         if self.server_type == ServerType.EMBY:
             return await self._async_rest_get_json(ApiUrl.PREFIXES, params)
@@ -364,26 +326,26 @@ class MediaBrowserHub:
         return [{Item.NAME: prefix[0]} for prefix in prefixes if len(prefix) > 0]
 
     async def async_get_studios(self, params: dict[str, Any]) -> dict[str, Any]:
-        """Gets a list of items."""
+        """Gets a list of studios."""
         await self._async_needs_authentication()
         return await self._async_rest_get_json(ApiUrl.STUDIOS, params)
 
     async def async_get_user_items(
         self, user_id: str, params: dict[str, Any]
     ) -> dict[str, Any]:
-        """Gets a list of items."""
+        """Gets a list of user items."""
         await self._async_needs_authentication()
         return await self._async_rest_get_json(
             f"{ApiUrl.USERS}/{user_id}{ApiUrl.ITEMS}", params
         )
 
     async def async_get_users(self) -> list[dict[str, Any]]:
-        """Gets a list of users"""
+        """Gets a list of users."""
         await self._async_needs_authentication()
         return await self._async_rest_get_json(ApiUrl.USERS)
 
     async def async_get_years(self, params: dict[str, Any]) -> dict[str, Any]:
-        """Gets a list of items."""
+        """Gets a list of years."""
         await self._async_needs_authentication()
         return await self._async_rest_get_json(ApiUrl.YEARS, params)
 
@@ -436,8 +398,6 @@ class MediaBrowserHub:
         return await self._async_rest_get_json(ApiUrl.AUTH_KEYS)
 
     async def _async_authenticate(self) -> None:
-        if not self.password:
-            raise ValueError("Password required for authentication")
         self.api_key = None
         self._auth_update()
         response = await self._async_rest_post_get_json(
@@ -456,20 +416,16 @@ class MediaBrowserHub:
         return await self._async_rest_get_json(ApiUrl.ACTIVITY_LOG_ENTRIES, params)
 
     async def _async_needs_authentication(self):
-        if self.api_key is not None:
-            if not self._is_api_key_validated:
-                try:
-                    _ = await self.async_test_auth()
-                    self._is_api_key_validated = True
-                except aiohttp.ClientResponseError as err:
-                    if err.status == 401 and self.password is not None:
-                        await self._async_authenticate()
-                    else:
-                        raise err
-        elif self.password is not None:
+        if self.api_key is None:
             await self._async_authenticate()
-        else:
-            raise ValueError("No API key or password provided")
+        elif not self._is_api_key_validated:
+            try:
+                _ = await self.async_test_auth()
+            except aiohttp.ClientResponseError as err:
+                if err.status == 401:
+                    await self._async_authenticate()
+                else:
+                    raise err
 
     async def _async_needs_sessions(self):
         if not any(self._sessions):
@@ -701,7 +657,7 @@ class MediaBrowserHub:
                     await listener(event[0], event[1])
                 except Exception as err:  # pylint: disable=broad-except
                     _LOGGER.error(
-                        "Error while handling availability listener %s: %s",
+                        "Error while handling session changed listener %s: %s",
                         listener,
                         err,
                     )
@@ -759,9 +715,9 @@ class MediaBrowserHub:
             "available" if availability else "unavailable",
         )
         self.is_available = availability
-        if any(self._availability_listeners):
+        if self._availability_listeners:
             if self._availability_task is not None:
-                if not self._availability_task.done:
+                if not self._availability_task.done():
                     self._availability_task.cancel()
             self._availability_task = asyncio.ensure_future(
                 self._call_availability_listeners(availability)
@@ -794,7 +750,7 @@ class MediaBrowserHub:
             if session_id in old_sessions and old_sessions[session_id] != session
         ]
 
-        return (added_sessions, removed_sessions, updated_sessions)
+        return added_sessions, removed_sessions, updated_sessions
 
     async def _handle_sessions_message(self, sessions: list[dict[str, Any]]) -> None:
         old_raw_sessions = deepcopy(self._raw_sessions)
@@ -810,10 +766,10 @@ class MediaBrowserHub:
         self._raw_sessions = new_raw_sessions
         self._sessions = new_sessions
 
-        if any(self._sessions_listeners):
+        if self._sessions_listeners:
             await self._call_sessions_listeners(list(new_sessions.values()))
 
-        if self.send_session_events and any(self._websocket_listeners):
+        if self.send_session_events and self._websocket_listeners:
             added, removed, updated = self._get_changed_sessions(
                 old_raw_sessions, new_raw_sessions
             )
@@ -852,7 +808,7 @@ class MediaBrowserHub:
             )
             await self._call_websocket_listeners_for_list(messages)
 
-        if any(self._session_changed_listeners):
+        if self._session_changed_listeners:
             added, removed, updated = self._get_changed_sessions(
                 old_sessions, new_sessions
             )
@@ -881,7 +837,7 @@ class MediaBrowserHub:
 
             if drop_first_entry and len(messages) > 0:
                 messages = messages[1:]
-            if any(messages):
+            if messages:
                 await self._call_websocket_listeners_for_list(messages)
 
     async def _handle_library_changed_message(
@@ -895,9 +851,7 @@ class MediaBrowserHub:
         keys = [
             key
             for key, listeners in listeners.items()
-            if listeners is not None
-            and any(listeners)
-            and (key[0] in collection_folders or key[0] == KEY_ALL)
+            if listeners and (key[0] in collection_folders or key[0] == KEY_ALL)
         ]
 
         for key in keys:
@@ -953,13 +907,13 @@ class MediaBrowserHub:
                     self._keep_alive_timeout = msg.get("Data", KEEP_ALIVE_TIMEOUT) / 2
                     call_listeners = False
                 case WebsocketMessage.LIBRARY_CHANGED:
-                    if any(self._library_listeners):
+                    if self._library_listeners:
                         asyncio.ensure_future(
                             self._handle_library_changed_message(data)
                         )
                     data = get_library_changed_event_data(data)
                 case WebsocketMessage.ACTIVITY_LOG_ENTRY:
-                    if self.send_activity_events and any(self._websocket_listeners):
+                    if self.send_activity_events and self._websocket_listeners:
                         asyncio.ensure_future(self._handle_activity_log_message())
                     call_listeners = False
                 case WebsocketMessage.SCHEDULED_TASK_INFO:
@@ -967,7 +921,7 @@ class MediaBrowserHub:
                 case WebsocketMessage.USER_DATA_CHANGED:
                     data = get_user_data_changed_event_data(data)
 
-            if call_listeners and any(self._websocket_listeners):
+            if call_listeners and self._websocket_listeners:
                 data = {
                     "server_id": self.server_id,
                     snake_case(msg_type): (data or {}),
@@ -1032,7 +986,6 @@ class MediaBrowserHub:
             asyncio.ensure_future(self._ws.send_str('{"MessageType":"KeepAlive"}'))
             self._last_keep_alive = datetime.utcnow()
             self._keep_alive_timeout = None
-
 
 class ClientMismatchError(aiohttp.ClientError):
     """Server unique id mismatch"""

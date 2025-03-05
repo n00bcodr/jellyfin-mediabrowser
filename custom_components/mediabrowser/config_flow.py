@@ -18,6 +18,7 @@ from homeassistant.helpers.entity_registry import (
 )
 
 from .const import (
+    CONF_API_KEY,
     CONF_CACHE_SERVER_API_KEY,
     CONF_CACHE_SERVER_ID,
     CONF_CACHE_SERVER_NAME,
@@ -43,7 +44,6 @@ from .const import (
     CONF_SENSOR_USER,
     CONF_SENSORS,
     CONF_SERVER,
-    CONF_API_KEY,
     CONF_TIMEOUT,
     CONF_UPCOMING_MEDIA,
     DATA_HUB,
@@ -69,8 +69,7 @@ from .hub import ClientMismatchError, MediaBrowserHub
 
 _LOGGER = logging.getLogger(__name__)
 
-
-class MediaBrowserConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore
+class MediaBrowserConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Media Browser (Emby/Jellyfin)."""
 
     VERSION = 1
@@ -153,6 +152,7 @@ class MediaBrowserConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore
         default_name = DEFAULT_SERVER_NAME
         default_username = None
         default_password = None
+        default_api_key = None
         if self.discovered_server_id is not None and self.available_servers is not None:
             server = self.available_servers[self.discovered_server_id]
             default_url = server[Discovery.ADDRESS]
@@ -164,7 +164,7 @@ class MediaBrowserConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore
                     CONF_URL,
                     default=previous_input.get(CONF_URL, default_url),
                 ): str,
-                vol.Required(
+                vol.Optional(
                     CONF_USERNAME,
                     default=previous_input.get(CONF_USERNAME, default_username),
                 ): str,
@@ -172,9 +172,9 @@ class MediaBrowserConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore
                     CONF_PASSWORD,
                     default=previous_input.get(CONF_PASSWORD, default_password),
                 ): str,
-                vol.Optional(
+                vol.Required(
                     CONF_API_KEY,
-                    default=previous_input.get(CONF_API_KEY),
+                    default=previous_input.get(CONF_API_KEY, default_api_key),
                 ): str,
                 vol.Optional(
                     CONF_NAME,
@@ -201,8 +201,8 @@ class MediaBrowserConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore
             if await _validate_config(
                 options,
                 errors,
-                username=user_input[CONF_USERNAME],
-                password=user_input[CONF_PASSWORD],
+                username=user_input.get(CONF_USERNAME),
+                password=user_input.get(CONF_PASSWORD),
                 api_key=user_input.get(CONF_API_KEY),
             ):
                 return self.async_create_entry(
@@ -218,10 +218,13 @@ class MediaBrowserConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore
         default_password = previous_input.get(
             CONF_PASSWORD, entry.options.get(CONF_PASSWORD)
         )
+        default_api_key = previous_input.get(
+            CONF_API_KEY, entry.options.get(CONF_API_KEY)
+        )
 
         data_schema = vol.Schema(
             {
-                vol.Required(
+                vol.Optional(
                     CONF_USERNAME,
                     default=previous_input.get(CONF_USERNAME, default_username),
                 ): str,
@@ -229,9 +232,9 @@ class MediaBrowserConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore
                     CONF_PASSWORD,
                     default=previous_input.get(CONF_PASSWORD, default_password),
                 ): str,
-                vol.Optional(
+                vol.Required(
                     CONF_API_KEY,
-                    default=previous_input.get(CONF_API_KEY),
+                    default=previous_input.get(CONF_API_KEY, default_api_key),
                 ): str,
             }
         )
@@ -245,7 +248,6 @@ class MediaBrowserConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         """Get the options flow for this handler."""
         return MediaBrowserOptionsFlow(config_entry)
-
 
 class MediaBrowserOptionsFlow(OptionsFlow):
     """Handle an option flow for Media Browser (Emby/Jellyfin)."""
@@ -277,8 +279,8 @@ class MediaBrowserOptionsFlow(OptionsFlow):
         if user_input:
             if await _validate_config(
                 self.options,
-                username=user_input[CONF_USERNAME],
-                password=user_input[CONF_PASSWORD],
+                username=user_input.get(CONF_USERNAME),
+                password=user_input.get(CONF_PASSWORD),
                 api_key=user_input.get(CONF_API_KEY),
                 errors=errors,
             ):
@@ -295,7 +297,7 @@ class MediaBrowserOptionsFlow(OptionsFlow):
             step_id="auth",
             data_schema=vol.Schema(
                 {
-                    vol.Required(
+                    vol.Optional(
                         CONF_USERNAME,
                         default=self.options.get(
                             CONF_USERNAME,
@@ -313,9 +315,9 @@ class MediaBrowserOptionsFlow(OptionsFlow):
                             ),
                         ),
                     ): str,
-                    vol.Optional(
+                    vol.Required(
                         CONF_API_KEY,
-                        default=previous_input.get(CONF_API_KEY),
+                        default=previous_input.get(CONF_API_KEY, self.options.get(CONF_API_KEY)),
                     ): str,
                 }
             ),
@@ -325,7 +327,7 @@ class MediaBrowserOptionsFlow(OptionsFlow):
     async def async_step_libraries(
         self, user_input: dict[str, Any] | None
     ) -> FlowResult:
-        """Handle the authentication step."""
+        """Handle the libraries step."""
         if user_input:
             self.options |= user_input
             return self.async_create_entry(
@@ -341,7 +343,7 @@ class MediaBrowserOptionsFlow(OptionsFlow):
                 {
                     vol.Required(
                         CONF_UPCOMING_MEDIA,
-                        default=self.options.get(CONF_UPCOMING_MEDIA),  # type: ignore
+                        default=self.options.get(CONF_UPCOMING_MEDIA),
                     ): bool,
                 }
             ),
@@ -364,19 +366,19 @@ class MediaBrowserOptionsFlow(OptionsFlow):
                 {
                     vol.Optional(
                         CONF_EVENTS_SESSIONS,
-                        default=self.options.get(CONF_EVENTS_SESSIONS),  # type: ignore
+                        default=self.options.get(CONF_EVENTS_SESSIONS),
                     ): bool,
                     vol.Optional(
                         CONF_EVENTS_ACTIVITY_LOG,
-                        default=self.options.get(CONF_EVENTS_ACTIVITY_LOG),  # type: ignore
+                        default=self.options.get(CONF_EVENTS_ACTIVITY_LOG),
                     ): bool,
                     vol.Optional(
                         CONF_EVENTS_TASKS,
-                        default=self.options.get(CONF_EVENTS_TASKS),  # type: ignore
+                        default=self.options.get(CONF_EVENTS_TASKS),
                     ): bool,
                     vol.Optional(
                         CONF_EVENTS_OTHER,
-                        default=self.options.get(CONF_EVENTS_OTHER),  # type: ignore
+                        default=self.options.get(CONF_EVENTS_OTHER),
                     ): bool,
                 }
             ),
@@ -433,8 +435,7 @@ class MediaBrowserOptionsFlow(OptionsFlow):
     async def async_step_remove_sensor(
         self, user_input: dict[str, Any] | None
     ) -> FlowResult:
-        """Handle a step to remove a new latest sensor."""
-
+        """Handle a step to remove a sensor."""
         sensors = self.options.get(CONF_SENSORS, [])
 
         entity_registry = async_get(self.hass)
@@ -472,7 +473,7 @@ class MediaBrowserOptionsFlow(OptionsFlow):
         entry_list = {
             key: value.name or value.original_name
             for key, value in sorted(
-                entries.items(), key=lambda x: x[1].name or x[1].original_name  # type: ignore
+                entries.items(), key=lambda x: x[1].name or x[1].original_name
             )
         }
 
@@ -482,7 +483,7 @@ class MediaBrowserOptionsFlow(OptionsFlow):
                 {
                     vol.Required(
                         CONF_SENSOR_REMOVE,
-                        default=next(iter(entry_list), None),  # type: ignore
+                        default=next(iter(entry_list), None),
                     ): vol.In(entry_list),
                 }
             ),
@@ -548,15 +549,15 @@ class MediaBrowserOptionsFlow(OptionsFlow):
                 {
                     vol.Required(
                         CONF_SENSOR_ITEM_TYPE,
-                        default="Movie",  # type: ignore
+                        default="Movie",
                     ): vol.In(type_list),
                     vol.Required(
                         CONF_SENSOR_LIBRARY,
-                        default=KEY_ALL,  # type: ignore
+                        default=KEY_ALL,
                     ): vol.In(library_list),
                     vol.Required(
                         CONF_SENSOR_USER,
-                        default=KEY_ALL,  # type: ignore
+                        default=KEY_ALL,
                     ): vol.In(user_list),
                 }
             ),
@@ -614,7 +615,6 @@ class MediaBrowserOptionsFlow(OptionsFlow):
             ),
         )
 
-
 async def _validate_config(
     options: dict[str, Any],
     errors: dict[str, str],
@@ -633,16 +633,18 @@ async def _validate_config(
         options[CONF_URL] = url
     if username is not None:
         options[CONF_USERNAME] = username
-        options.pop(CONF_CACHE_SERVER_API_KEY, None)
     if password is not None:
         options[CONF_PASSWORD] = password
-        options.pop(CONF_CACHE_SERVER_API_KEY, None)
     if api_key is not None:
         options[CONF_API_KEY] = api_key
         options.pop(CONF_CACHE_SERVER_API_KEY, None)
 
+    if not options.get(CONF_API_KEY) and not options.get(CONF_PASSWORD):
+        errors["base"] = "no_auth_provided"
+        return False
+
     hub = MediaBrowserHub(options)
-    if options.get(CONF_API_KEY) and not options.get(CONF_PASSWORD):
+    if options.get(CONF_API_KEY):
         hub.api_key = options[CONF_API_KEY]
     try:
         await hub.async_start(False)
@@ -662,6 +664,8 @@ async def _validate_config(
         errors["base"] = "timeout"
     except ClientMismatchError:
         errors["base"] = "mismatch"
+    except ValueError as err:
+        errors["base"] = str(err)
     except Exception as err:  # pylint: disable=broad-except
         _LOGGER.debug("Unexpected error: %s (%s)", type(err), err)
         errors["base"] = "unknown"
