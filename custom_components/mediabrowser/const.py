@@ -1,7 +1,3 @@
-# custom_components/mediabrowser/const.py
-# No changes needed in this file based on the goal.
-# CONF_API_KEY is already defined.
-
 """Constants for the Media Browser (Emby/Jellyfin) integration."""
 
 from typing import Any
@@ -13,7 +9,7 @@ DOMAIN = "mediabrowser"
 
 
 CONF_SERVER = "server"
-CONF_API_KEY = "api_key" # Ensure this is used consistently
+CONF_API_KEY = "api_key"
 CONF_CLIENT_NAME = "client"
 CONF_DEVICE_NAME = "device_name"
 CONF_DEVICE_VERSION = "device_version"
@@ -42,7 +38,7 @@ CONF_CACHE_SERVER_NAME = "cache_server_name"
 CONF_CACHE_SERVER_ID = "cache_server_id"
 CONF_CACHE_SERVER_PING = "cache_server_ping"
 CONF_CACHE_SERVER_VERSION = "cache_server_version"
-CONF_CACHE_SERVER_API_KEY = "cache_api_key" # This seems like a duplicate, prefer CONF_API_KEY
+CONF_CACHE_SERVER_API_KEY = "cache_api_key"
 CONF_CACHE_SERVER_USER_ID = "cache_user_id"
 
 CONF_EVENTS_SESSIONS = "events_sessions"
@@ -121,8 +117,8 @@ class ApiUrl(StrEnum):
     ACTIVITY_LOG_ENTRIES = "/System/ActivityLog/Entries"
     ALBUM_ARTISTS = "/AlbumArtists"
     ARTISTS = "/Artists"
-    AUTH_KEYS = "/Auth/Keys" # Used for testing API key
-    AUTHENTICATE = "/Users/AuthenticateByName" # To be removed/unused
+    AUTH_KEYS = "/Auth/Keys"
+    AUTHENTICATE = "/Users/AuthenticateByName"
     CHANNELS = "/Channels"
     COMMAND = "/Command"
     GENRES = "/Genres"
@@ -142,7 +138,7 @@ class ApiUrl(StrEnum):
     SHUTDOWN = "/System/Shutdown"
     STUDIOS = "/Studios"
     TAGS = "/Tags"
-    TEST_API_KEY = "/Auth/Keys" # Renamed for clarity
+    TEST_API_KEY = "/Auth/Keys"
     USERS = "/Users"
     YEARS = "/Years"
 
