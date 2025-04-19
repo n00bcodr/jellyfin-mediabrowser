@@ -9,7 +9,6 @@ DOMAIN = "mediabrowser"
 
 
 CONF_SERVER = "server"
-CONF_API_KEY = "api_key"
 CONF_CLIENT_NAME = "client"
 CONF_DEVICE_NAME = "device_name"
 CONF_DEVICE_VERSION = "device_version"

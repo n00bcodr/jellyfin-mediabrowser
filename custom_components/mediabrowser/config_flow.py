@@ -43,7 +43,6 @@ from .const import (
     CONF_SENSOR_USER,
     CONF_SENSORS,
     CONF_SERVER,
-    CONF_API_KEY,
     CONF_TIMEOUT,
     CONF_UPCOMING_MEDIA,
     DATA_HUB,
@@ -133,7 +132,7 @@ class MediaBrowserConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            if await _validate_config(user_input, errors, api_key=user_input.get(CONF_API_KEY)):
+            if await _validate_config(user_input, errors):
                 await self.async_set_unique_id(user_input[CONF_CACHE_SERVER_ID])
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
@@ -168,13 +167,9 @@ class MediaBrowserConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore
                     CONF_USERNAME,
                     default=previous_input.get(CONF_USERNAME, default_username),
                 ): str,
-                vol.Optional(
+                vol.Required(
                     CONF_PASSWORD,
                     default=previous_input.get(CONF_PASSWORD, default_password),
-                ): str,
-                vol.Optional(
-                    CONF_API_KEY,
-                    default=previous_input.get(CONF_API_KEY),
                 ): str,
                 vol.Optional(
                     CONF_NAME,
@@ -203,7 +198,6 @@ class MediaBrowserConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore
                 errors,
                 username=user_input[CONF_USERNAME],
                 password=user_input[CONF_PASSWORD],
-                api_key=user_input.get(CONF_API_KEY),
             ):
                 return self.async_create_entry(
                     title=options.get(CONF_NAME, options.get(CONF_CACHE_SERVER_NAME)),
@@ -225,13 +219,9 @@ class MediaBrowserConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore
                     CONF_USERNAME,
                     default=previous_input.get(CONF_USERNAME, default_username),
                 ): str,
-                vol.Optional(
+                vol.Required(
                     CONF_PASSWORD,
                     default=previous_input.get(CONF_PASSWORD, default_password),
-                ): str,
-                vol.Optional(
-                    CONF_API_KEY,
-                    default=previous_input.get(CONF_API_KEY),
                 ): str,
             }
         )
@@ -279,7 +269,6 @@ class MediaBrowserOptionsFlow(OptionsFlow):
                 self.options,
                 username=user_input[CONF_USERNAME],
                 password=user_input[CONF_PASSWORD],
-                api_key=user_input.get(CONF_API_KEY),
                 errors=errors,
             ):
                 return self.async_create_entry(
@@ -304,7 +293,7 @@ class MediaBrowserOptionsFlow(OptionsFlow):
                             ),
                         ),
                     ): str,
-                    vol.Optional(
+                    vol.Required(
                         CONF_PASSWORD,
                         default=self.options.get(
                             CONF_PASSWORD,
@@ -312,10 +301,6 @@ class MediaBrowserOptionsFlow(OptionsFlow):
                                 CONF_PASSWORD, self.options.get(CONF_PASSWORD)
                             ),
                         ),
-                    ): str,
-                    vol.Optional(
-                        CONF_API_KEY,
-                        default=previous_input.get(CONF_API_KEY),
                     ): str,
                 }
             ),
@@ -621,13 +606,12 @@ async def _validate_config(
     url: str | None = None,
     username: str | None = None,
     password: str | None = None,
-    api_key: str | None = None,
 ) -> bool:
     errors.clear()
     save_url = options.get(CONF_URL)
     save_username = options.get(CONF_USERNAME)
     save_password = options.get(CONF_PASSWORD)
-    save_api_key = options.get(CONF_API_KEY) or options.get(CONF_CACHE_SERVER_API_KEY)
+    save_api_key = options.get(CONF_CACHE_SERVER_API_KEY)
 
     if url is not None:
         options[CONF_URL] = url
@@ -637,13 +621,8 @@ async def _validate_config(
     if password is not None:
         options[CONF_PASSWORD] = password
         options.pop(CONF_CACHE_SERVER_API_KEY, None)
-    if api_key is not None:
-        options[CONF_API_KEY] = api_key
-        options.pop(CONF_CACHE_SERVER_API_KEY, None)
 
     hub = MediaBrowserHub(options)
-    if options.get(CONF_API_KEY) and not options.get(CONF_PASSWORD):
-        hub.api_key = options[CONF_API_KEY]
     try:
         await hub.async_start(False)
     except aiohttp.ClientConnectionError:

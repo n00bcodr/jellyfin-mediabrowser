@@ -30,7 +30,6 @@ from .const import (
     CONF_CACHE_SERVER_USER_ID,
     CONF_CACHE_SERVER_VERSION,
     CONF_CLIENT_NAME,
-    CONF_API_KEY,
     CONF_DEVICE_ID,
     CONF_DEVICE_NAME,
     CONF_DEVICE_VERSION,
@@ -85,8 +84,7 @@ class MediaBrowserHub:
         parsed_url = urllib.parse.urlparse(options[CONF_URL])
         self._host: str = parsed_url.hostname
         self.username: str = options[CONF_USERNAME]
-        self.password: str = options.get(CONF_PASSWORD)
-        self.api_key: str | None = options.get(CONF_API_KEY) or options.get(CONF_CACHE_SERVER_API_KEY)
+        self.password: str = options[CONF_PASSWORD]
         self._use_ssl: bool = parsed_url.scheme == "https" or (
             parsed_url.scheme == "" and parsed_url.port == DEFAULT_SSL_PORT
         )
@@ -436,8 +434,6 @@ class MediaBrowserHub:
         return await self._async_rest_get_json(ApiUrl.AUTH_KEYS)
 
     async def _async_authenticate(self) -> None:
-        if not self.password:
-            raise ValueError("Password required for authentication")
         self.api_key = None
         self._auth_update()
         response = await self._async_rest_post_get_json(
@@ -456,20 +452,16 @@ class MediaBrowserHub:
         return await self._async_rest_get_json(ApiUrl.ACTIVITY_LOG_ENTRIES, params)
 
     async def _async_needs_authentication(self):
-        if self.api_key is not None:
-            if not self._is_api_key_validated:
-                try:
-                    _ = await self.async_test_auth()
-                    self._is_api_key_validated = True
-                except aiohttp.ClientResponseError as err:
-                    if err.status == 401 and self.password is not None:
-                        await self._async_authenticate()
-                    else:
-                        raise err
-        elif self.password is not None:
+        if self.api_key is None:
             await self._async_authenticate()
-        else:
-            raise ValueError("No API key or password provided")
+        elif not self._is_api_key_validated:
+            try:
+                _ = await self.async_test_auth()
+            except aiohttp.ClientResponseError as err:
+                if err.status == 401:
+                    await self._async_authenticate()
+                else:
+                    raise err
 
     async def _async_needs_sessions(self):
         if not any(self._sessions):
