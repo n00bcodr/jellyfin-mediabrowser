@@ -12,154 +12,159 @@
                 }
             },
             "manual": {
-                "title": "Configuration",
+                "title": "Server Configuration",
                 "data": {
                     "url": "URL",
-                    "name": "Name",
-                    "username": "Username",
-                    "password": "Password"
+                    "api_key": "API Key",
+                    "name": "Name (Optional)"
                 },
                 "data_description": {
-                    "url": "URL where your Emby or Jellyfin can be found",
-                    "name": "Use this instead of server name when creating entities",
-                    "username": "Your user name, needs administrative privileges",
-                    "password": "Your password"
+                    "url": "Full URL of your Emby or Jellyfin server (e.g., http://192.168.1.10:8096 or https://mydomain.com/jellyfin)",
+                    "api_key": "Your Jellyfin/Emby API Key (Generate one in Server Dashboard > API Keys)",
+                    "name": "Custom name for this server in Home Assistant"
                 }
             }
         },
         "error": {
-            "bad_request": "Are you sure that this is an Emby or Jellyfin server?",
-            "cannot_connect": "Server unavailable",
-            "invalid_auth": "Invalid username or password",
-            "unknown": "Unknown error",
-            "weak_auth": "The specified user does not have enough rights",
-            "timeout": "Timeout while trying to connect to server",
-            "mismatch": "You are trying to connect to another server. Create new configuration for another server"
+            "bad_request": "Server response indicates it might not be an Emby or Jellyfin server.",
+            "cannot_connect": "Unable to connect to the server. Check URL and network.",
+            "invalid_auth": "Invalid API Key provided.",
+            "forbidden": "API Key lacks necessary permissions.",
+            "unknown": "An unknown error occurred.",
+            "timeout": "Timeout while trying to connect to server.",
+            "mismatch": "The discovered server ID does not match the stored ID. If the server was reinstalled, remove and re-add the integration.",
+            "missing_url_or_key": "URL and API Key are required."
         },
         "abort": {
-            "already_configured": "Device is already configured"
+            "already_configured": "This server is already configured.",
+            "reauth_successful": "Re-authentication successful."
         }
     },
     "options": {
         "step": {
             "init": {
-                "title": "Select options",
+                "title": "Media Browser Options",
                 "menu_options": {
-                    "auth": "Configure authentication",
-                    "players": "Media Players options",
-                    "libraries": "Library sensors options",
-                    "events": "Events configuration",
-                    "add_sensor": "Add a sensor",
-                    "remove_sensor": "Remove a sensor",
-                    "advanced": "Advanced options"
+                    "auth": "Update API Key",
+                    "players": "Media Player Options",
+                    "libraries": "Library Sensor Options",
+                    "events": "Event Configuration",
+                    "add_sensor": "Add Library Sensor",
+                    "remove_sensor": "Remove Library Sensor",
+                    "advanced": "Advanced Options"
                 }
             },
             "auth": {
-                "title": "Authentication",
+                "title": "Update API Key",
+                 "description": "Enter the new API Key for server: {url}",
                 "data": {
-                    "username": "Username",
-                    "password": "Password"
+                    "api_key": "New API Key"
                 },
                 "data_description": {
-                    "username": "Your username (needs administrative privileges)",
-                    "password": "Your password"
+                    "api_key": "Generate a new key in Server Dashboard > API Keys if needed."
                 }
             },
             "libraries": {
-                "title": "Library sensors options",
+                "title": "Library Sensor Options",
                 "data": {
-                    "upcoming_media": "Provide data for upcoming media card"
+                    "upcoming_media": "Provide data for Upcoming Media Card"
                 },
                 "data_description": {
-                    "upcoming_media": "Add specific attributes to library sensors in order to be used by Upcoming Media Card"
+                    "upcoming_media": "Add specific attributes formatted for the Upcoming Media Card."
                 }
             },
             "players": {
-                "title": "Media Players options",
+                "title": "Media Player Options",
                 "data": {
                     "ignore_web_players": "Ignore web players",
                     "ignore_dlna_players": "Ignore DLNA players",
                     "ignore_mobile_players": "Ignore mobile players",
                     "ignore_app_players": "Ignore application players",
-                    "purge_players": "Auto purge media players"
+                    "purge_players": "Auto-remove unavailable players"
                 },
                 "data_description": {
-                    "ignore_web_players": "Do not create media players for web sessions",
-                    "ignore_dlna_players": "Do not create media players for DLNA sessions",
-                    "ignore_mobile_players": "Do not create media players for mobile sessions",
-                    "ignore_app_players": "Do not create media players for known integrations",
-                    "purge_players": "Automatically remove unavailable media players"
+                    "ignore_web_players": "Do not create media players for web sessions.",
+                    "ignore_dlna_players": "Do not create media players for DLNA sessions.",
+                    "ignore_mobile_players": "Do not create media players for mobile app sessions.",
+                    "ignore_app_players": "Do not create media players for known integrations/apps (like this one).",
+                    "purge_players": "Automatically remove media player entities when their session ends or they become ignored."
                 }
             },
             "events": {
-                "title": "Event configuration",
+                "title": "Event Configuration",
+                "description": "Select which server events should be fired on the Home Assistant event bus. Warning: Some events can be resource intensive.",
                 "data": {
-                    "events_sessions": "Send events on session changes",
-                    "events_activity_log": "Send events for user activity",
-                    "events_tasks": "Send events for tasks",
-                    "events_other": "Send other events"
+                    "events_sessions": "Send events on session changes (Resource Intensive)",
+                    "events_activity_log": "Send events for user activity (Resource Intensive)",
+                    "events_tasks": "Send events for server tasks (Resource Intensive)",
+                    "events_other": "Send other miscellaneous events"
                 },
                 "data_description": {
-                    "events_sessions": "Send an event everytime a session changes, is added or is removed",
-                    "events_activity_log": "Send an event everytime a activity is performed on the server",
-                    "events_tasks": "Send an event every time a task is created, updated or finished",
-                    "events_other": "Send all other events"
+                    "events_sessions": "Fires 'mediabrowser_session_changed' for session start, stop, and updates.",
+                    "events_activity_log": "Fires 'mediabrowser_activity_log_entry' for server activities.",
+                    "events_tasks": "Fires events related to scheduled tasks.",
+                    "events_other": "Fires other events like UserDataChanged, LibraryChanged, etc."
                 }
             },
-            "add_sensor": {
-                "title": "Add a sensor",
-                "data": {
-                    "type": "Media type",
-                    "library": "Library",
-                    "user": "User"
-                },
-                "data_description": {
-                    "type": "Media type to be monitored",
-                    "library": "Provide information only for the specified library",
-                    "user": "Provide information only for the selected user"
-                }
-            },
-            "remove_sensor": {
-                "title": "Remove a sensor",
-                "data": {
-                    "latest_remove": "Select a sensor to remove"
-                },
-                "data_description": {
-                    "latest_remove": "The selected sensor will be deleted. It cannot be recovered, but you can recreate it later"
-                }
-            },
+             "add_sensor": {
+                 "title": "Add Library Sensor",
+                 "description": "Create a sensor showing the count and latest items for a specific media type, optionally filtered by library and user.",
+                 "data": {
+                     "sensor_type": "Media Type",
+                     "sensor_library": "Library",
+                     "sensor_user": "User"
+                 },
+                 "data_description": {
+                     "sensor_type": "Select the type of media to monitor.",
+                     "sensor_library": "Select '(All libraries)' or a specific library.",
+                     "sensor_user": "Select '(All users)' or a specific user's view."
+                 }
+             },
+             "remove_sensor": {
+                 "title": "Remove Library Sensor",
+                 "data": {
+                     "sensor_remove": "Select sensor to remove"
+                 },
+                 "data_description": {
+                     "sensor_remove": "The selected sensor entity will be removed from Home Assistant."
+                 }
+             },
             "advanced": {
-                "title": "Advanced options",
+                "title": "Advanced Options",
+                "description": "Customize how this integration identifies itself to the server and connection settings.",
                 "data": {
-                    "name": "Customize server name",
-                    "client": "Client name",
-                    "device_name": "Device name",
-                    "device_id": "Device identifier",
-                    "device_version": "Device version",
-                    "timeout": "Timeout"
+                    "name": "Server name override",
+                    "client": "Client name reported",
+                    "device_name": "Device name reported",
+                    "device_id": "Device identifier reported",
+                    "device_version": "Client version reported",
+                    "timeout": "Connection timeout (seconds)"
                 },
                 "data_description": {
-                    "name": "Use this instead of server name when creating entities",
-                    "client": "Name of the client to be reported in Emby/Jellyfin server",
-                    "device_name": "Device name to be reported in Emby/Jellyfin server",
-                    "device_id": "Device name to be reported in Emby/Jellyfin server",
-                    "device_version": "Device version to be reported in Emby/Jellyfin server",
-                    "timeout": "How much time to wait (in seconds) to consider that you Emby/Jellyfin server is down"
+                    "name": "Overrides the name fetched from the server.",
+                    "client": "Name reported to the server (seen in Dashboard > Devices).",
+                    "device_name": "Device name reported to the server.",
+                    "device_id": "Unique ID reported to the server (changing this may create duplicate devices).",
+                    "device_version": "Version reported to the server.",
+                    "timeout": "Seconds to wait for server responses before timing out."
                 }
             }
         },
         "error": {
-            "bad_request": "Are you sure that this is an Emby or Jellyfin server?",
-            "cannot_connect": "Server unavailable",
-            "invalid_auth": "Invalid username or password",
-            "unknown": "Unknown error",
-            "weak_auth": "The specified user does not have enough rights",
-            "timeout": "Timeout while trying to connect to server",
-            "mismatch": "You are trying to connect to another server. Create new configuration for another server"
+            "bad_request": "[%key:common::config_flow::error::bad_request%]",
+            "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+            "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+            "forbidden": "[%key:common::config_flow::error::forbidden%]",
+            "unknown": "[%key:common::config_flow::error::unknown%]",
+            "timeout": "[%key:common::config_flow::error::timeout%]",
+            "mismatch": "[%key:common::config_flow::error::mismatch%]"
         },
         "abort": {
-            "no_sensors": "There are no sensors configured",
-            "sensor_already_configured": "This sensor is already configured"
+            "no_sensors": "There are no library sensors configured to remove.",
+            "no_sensors_in_registry": "No library sensors found in the entity registry to remove.",
+            "sensor_already_configured": "A sensor with these exact settings already exists.",
+            "hub_not_ready": "The connection to the server is not ready. Cannot add sensor.",
+            "fetch_failed": "Failed to fetch required information (users/libraries) from the server."
         }
     }
 }

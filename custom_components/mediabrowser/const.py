@@ -1,14 +1,19 @@
+# custom_components/mediabrowser/const.py
+# No changes needed in this file based on the goal.
+# CONF_API_KEY is already defined.
+
 """Constants for the Media Browser (Emby/Jellyfin) integration."""
 
 from typing import Any
 
-from homeassistant.backports.enum import StrEnum
+from enum import StrEnum
 from homeassistant.components.media_player import MediaClass, MediaType
 
 DOMAIN = "mediabrowser"
 
 
 CONF_SERVER = "server"
+CONF_API_KEY = "api_key"
 CONF_CLIENT_NAME = "client"
 CONF_DEVICE_NAME = "device_name"
 CONF_DEVICE_VERSION = "device_version"
@@ -57,7 +62,7 @@ DEFAULT_IGNORE_APP_PLAYERS = False
 DEFAULT_PURGE_PLAYERS = False
 DEFAULT_UPCOMING_MEDIA = False
 DEFAULT_PORT = 8096
-DEFAULT_SSL_PORT = 8920
+DEFAULT_SSL_PORT = 443
 DEFAULT_USE_SSL = False
 
 DEFAULT_EVENTS_SESSIONS = False
@@ -116,8 +121,8 @@ class ApiUrl(StrEnum):
     ACTIVITY_LOG_ENTRIES = "/System/ActivityLog/Entries"
     ALBUM_ARTISTS = "/AlbumArtists"
     ARTISTS = "/Artists"
-    AUTH_KEYS = "/Auth/Keys"
-    AUTHENTICATE = "/Users/AuthenticateByName"
+    AUTH_KEYS = "/Auth/Keys" # Used for testing API key
+    AUTHENTICATE = "/Users/AuthenticateByName" # To be removed/unused
     CHANNELS = "/Channels"
     COMMAND = "/Command"
     GENRES = "/Genres"
@@ -137,7 +142,6 @@ class ApiUrl(StrEnum):
     SHUTDOWN = "/System/Shutdown"
     STUDIOS = "/Studios"
     TAGS = "/Tags"
-    TEST_API_KEY = "/Auth/Keys"
     USERS = "/Users"
     YEARS = "/Years"
 
